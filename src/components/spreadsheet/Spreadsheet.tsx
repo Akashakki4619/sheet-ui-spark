@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { SpreadsheetToolbar } from './SpreadsheetToolbar';
 import { SpreadsheetTable, TableRow } from './SpreadsheetTable';
 import { SpreadsheetTabs } from './SpreadsheetTabs';
+import { FormulaBar } from './FormulaBar';
+import { AdvancedFilter } from './AdvancedFeatures';
 import { useToast } from '@/hooks/use-toast';
 
 // Mock data matching the uploaded image
@@ -72,6 +74,8 @@ export const Spreadsheet = () => {
   const [data, setData] = useState<TableRow[]>(mockData);
   const [sortColumn, setSortColumn] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [selectedCell, setSelectedCell] = useState<{ row: number; col: string } | null>(null);
+  const [showFilter, setShowFilter] = useState(false);
   const { toast } = useToast();
 
   const handleToolbarAction = (action: string) => {
@@ -106,13 +110,18 @@ export const Spreadsheet = () => {
     // Handle other actions with toast notifications
     const actionMessages: { [key: string]: string } = {
       'hide-fields': 'Field visibility toggled',
-      'filter': 'Filter panel opened',
+      'filter': 'Advanced filter opened',
       'cell-view': 'Cell view mode toggled',
       'import': 'Import dialog opened',
       'export': 'Export options displayed',
       'share': 'Share dialog opened',
       'new-action': 'New action dialog opened'
     };
+
+    if (action === 'filter') {
+      setShowFilter(true);
+      return;
+    }
 
     toast({
       title: "Action Triggered",
@@ -134,6 +143,30 @@ export const Spreadsheet = () => {
     });
   };
 
+  const handleCellEdit = (rowId: number, columnKey: string, newValue: string) => {
+    console.log(`Cell edited: Row ${rowId}, Column ${columnKey}, New Value: ${newValue}`);
+    
+    setData(prev => prev.map(row => 
+      row.id === rowId 
+        ? { ...row, [columnKey]: newValue }
+        : row
+    ));
+    
+    toast({
+      title: "Cell Updated",
+      description: `Updated ${columnKey} for row ${rowId}`,
+    });
+  };
+
+  const handleFormulaSubmit = (formula: string) => {
+    console.log(`Formula submitted: ${formula}`);
+    // Simulate formula calculation
+    toast({
+      title: "Formula Calculated",
+      description: `Formula ${formula} has been processed`,
+    });
+  };
+
   const handleTabChange = (tabId: string) => {
     console.log(`Tab changed to: ${tabId}`);
     toast({
@@ -150,17 +183,74 @@ export const Spreadsheet = () => {
     });
   };
 
+  const handleFilterApply = (filters: Record<string, string>) => {
+    console.log('Filters applied:', filters);
+    setShowFilter(false);
+    toast({
+      title: "Filters Applied",
+      description: `Applied ${Object.keys(filters).length} filters`,
+    });
+  };
+
+  const getCurrentCellValue = () => {
+    if (!selectedCell) return '';
+    const row = data.find(r => r.id === selectedCell.row);
+    return row ? String(row[selectedCell.col as keyof TableRow]) : '';
+  };
+
+  const columns = [
+    { key: 'id', label: '#' },
+    { key: 'jobRequest', label: 'Job Request' },
+    { key: 'submitted', label: 'Submitted' },
+    { key: 'status', label: 'Status' },
+    { key: 'submitter', label: 'Submitter' },
+    { key: 'url', label: 'URL' },
+    { key: 'assigned', label: 'Assigned' },
+    { key: 'priority', label: 'Priority' },
+    { key: 'dueDate', label: 'Due Date' },
+    { key: 'estValue', label: 'Est. Value' }
+  ];
+
   return (
     <div className="h-screen flex flex-col bg-background">
       <SpreadsheetTabs onTabChange={handleTabChange} onTabAdd={handleTabAdd} />
-      <SpreadsheetToolbar onAction={handleToolbarAction} />
+      
+      <SpreadsheetToolbar 
+        onAction={handleToolbarAction}
+        data={data}
+        selectedRows={[]}
+      />
+      
+      <FormulaBar 
+        selectedCell={selectedCell}
+        cellValue={getCurrentCellValue()}
+        onValueChange={(value) => {
+          if (selectedCell) {
+            handleCellEdit(selectedCell.row, selectedCell.col, value);
+          }
+        }}
+        onFormulaSubmit={handleFormulaSubmit}
+      />
+      
       <SpreadsheetTable 
         data={data}
-        onCellClick={handleCellClick}
+        onCellClick={(rowId, columnKey) => {
+          handleCellClick(rowId, columnKey);
+          setSelectedCell({ row: rowId, col: columnKey });
+        }}
         onCellDoubleClick={handleCellDoubleClick}
+        onCellEdit={handleCellEdit}
         sortColumn={sortColumn}
         sortDirection={sortDirection}
       />
+      
+      {showFilter && (
+        <AdvancedFilter 
+          columns={columns}
+          onFilter={handleFilterApply}
+          onClose={() => setShowFilter(false)}
+        />
+      )}
     </div>
   );
 };

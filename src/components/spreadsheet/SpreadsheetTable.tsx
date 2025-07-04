@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { StatusBadge } from './StatusBadge';
 import { PriorityIndicator } from './PriorityIndicator';
+import { CellContextMenu, ColumnResizeHandle } from './AdvancedFeatures';
+import { useCollaboration } from './CollaborationFeatures';
 
 export interface TableRow {
   id: number;
@@ -19,6 +21,7 @@ interface SpreadsheetTableProps {
   data: TableRow[];
   onCellClick: (rowId: number, columnKey: string) => void;
   onCellDoubleClick: (rowId: number, columnKey: string) => void;
+  onCellEdit: (rowId: number, columnKey: string, newValue: string) => void;
   sortColumn?: string;
   sortDirection?: 'asc' | 'desc';
 }
@@ -27,11 +30,21 @@ export const SpreadsheetTable = ({
   data, 
   onCellClick, 
   onCellDoubleClick,
+  onCellEdit,
   sortColumn,
   sortDirection 
 }: SpreadsheetTableProps) => {
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: string } | null>(null);
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    isOpen: boolean;
+    position: { x: number; y: number };
+    cellData?: { row: number; col: string; value: string };
+  }>({ isOpen: false, position: { x: 0, y: 0 } });
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  
+  const { CollaboratorIndicators, simulateCollaborativeEdit } = useCollaboration();
 
   const columns = [
     { key: 'id', label: '#', width: 'w-12' },
@@ -96,6 +109,25 @@ export const SpreadsheetTable = ({
     onCellClick(rowId, columnKey);
   };
 
+  const handleCellRightClick = (e: React.MouseEvent, rowId: number, columnKey: string, value: string) => {
+    e.preventDefault();
+    setContextMenu({
+      isOpen: true,
+      position: { x: e.clientX, y: e.clientY },
+      cellData: { row: rowId, col: columnKey, value }
+    });
+  };
+
+  const handleContextMenuAction = (action: string) => {
+    console.log(`Context menu action: ${action}`, contextMenu.cellData);
+    setContextMenu(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleColumnResize = (columnIndex: number, width: number) => {
+    const columnKey = columns[columnIndex].key;
+    setColumnWidths(prev => ({ ...prev, [columnKey]: width }));
+  };
+
   const renderCellContent = (row: TableRow, columnKey: string) => {
     const value = row[columnKey as keyof TableRow];
     
@@ -126,66 +158,85 @@ export const SpreadsheetTable = ({
   const getCellClasses = (rowId: number, columnKey: string) => {
     const isSelected = selectedCell?.row === rowId && selectedCell?.col === columnKey;
     const isRowHovered = hoveredRow === rowId;
+    const isRowSelected = selectedRows.includes(rowId);
     
     return `
-      px-3 py-2 text-sm border-r border-sheet-border cursor-cell
-      ${isSelected ? 'bg-sheet-selected ring-2 ring-blue-500 ring-inset' : ''}
+      relative px-3 py-2 text-sm border-r border-sheet-border cursor-cell transition-all duration-150
+      ${isSelected ? 'bg-sheet-selected ring-2 ring-blue-500 ring-inset animate-cell-select' : ''}
       ${isRowHovered && !isSelected ? 'bg-sheet-hover' : ''}
+      ${isRowSelected ? 'bg-blue-50' : ''}
       ${columnKey === 'id' ? 'text-center font-mono text-muted-foreground' : ''}
     `.trim();
   };
 
   return (
-    <div className="overflow-auto bg-background" style={{ height: 'calc(100vh - 120px)' }}>
-      <table className="w-full border-collapse">
-        <thead className="sticky top-0 z-10">
-          <tr className="bg-sheet-header border-b border-sheet-border">
-            {columns.map((column) => (
-              <th 
-                key={column.key}
-                className={`
-                  px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider
-                  border-r border-sheet-border ${column.width} min-w-0
-                  ${sortColumn === column.key ? 'bg-sheet-selected' : ''}
-                `}
-              >
-                <div className="flex items-center space-x-1">
-                  <span className="truncate">{column.label}</span>
-                  {sortColumn === column.key && (
-                    <span className="text-xs">
-                      {sortDirection === 'asc' ? '↑' : '↓'}
-                    </span>
-                  )}
-                </div>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row, rowIndex) => (
-            <tr 
-              key={row.id}
-              className={`
-                border-b border-sheet-border hover:bg-sheet-hover
-                ${rowIndex % 2 === 0 ? 'bg-background' : 'bg-sheet-header/30'}
-              `}
-              onMouseEnter={() => setHoveredRow(row.id)}
-              onMouseLeave={() => setHoveredRow(null)}
-            >
-              {columns.map((column) => (
-                <td
-                  key={`${row.id}-${column.key}`}
-                  className={getCellClasses(row.id, column.key)}
-                  onClick={() => handleCellClick(row.id, column.key)}
-                  onDoubleClick={() => onCellDoubleClick(row.id, column.key)}
+    <>
+      <div className="overflow-auto bg-background" style={{ height: 'calc(100vh - 200px)' }}>
+        <table className="w-full border-collapse">
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-sheet-header border-b border-sheet-border">
+              {columns.map((column, index) => (
+                <th 
+                  key={column.key}
+                  className={`
+                    relative px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider
+                    border-r border-sheet-border ${column.width} min-w-0
+                    ${sortColumn === column.key ? 'bg-sheet-selected' : ''}
+                  `}
+                  style={{ width: columnWidths[column.key] || undefined }}
                 >
-                  {renderCellContent(row, column.key)}
-                </td>
+                  <div className="flex items-center space-x-1">
+                    <span className="truncate">{column.label}</span>
+                    {sortColumn === column.key && (
+                      <span className="text-xs animate-fade-in">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                  <ColumnResizeHandle 
+                    columnIndex={index}
+                    onResize={handleColumnResize}
+                  />
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {data.map((row, rowIndex) => (
+              <tr 
+                key={row.id}
+                className={`
+                  border-b border-sheet-border hover:bg-sheet-hover transition-colors duration-150
+                  ${rowIndex % 2 === 0 ? 'bg-background' : 'bg-sheet-header/30'}
+                `}
+                onMouseEnter={() => setHoveredRow(row.id)}
+                onMouseLeave={() => setHoveredRow(null)}
+              >
+                {columns.map((column) => (
+                  <td
+                    key={`${row.id}-${column.key}`}
+                    className={getCellClasses(row.id, column.key)}
+                    onClick={() => handleCellClick(row.id, column.key)}
+                    onDoubleClick={() => onCellDoubleClick(row.id, column.key)}
+                    onContextMenu={(e) => handleCellRightClick(e, row.id, column.key, String(row[column.key as keyof TableRow]))}
+                  >
+                    {renderCellContent(row, column.key)}
+                    <CollaboratorIndicators rowId={row.id} columnKey={column.key} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      <CellContextMenu 
+        isOpen={contextMenu.isOpen}
+        position={contextMenu.position}
+        onClose={() => setContextMenu(prev => ({ ...prev, isOpen: false }))}
+        onAction={handleContextMenuAction}
+        cellData={contextMenu.cellData}
+      />
+    </>
   );
 };

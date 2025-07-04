@@ -2,14 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Spreadsheet Design System - Inspired by Google Sheets */
 
 @layer base {
   :root {
+    /* Base colors */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 220 13% 18%;
+    
+    /* Spreadsheet specific colors */
+    --sheet-header: 220 13% 95%;
+    --sheet-border: 220 13% 91%;
+    --sheet-hover: 220 13% 98%;
+    --sheet-selected: 214 100% 97%;
+    
+    /* Status colors */
+    --status-complete: 142 76% 36%;
+    --status-complete-bg: 142 76% 94%;
+    --status-in-process: 45 93% 47%;
+    --status-in-process-bg: 45 93% 95%;
+    --status-need-start: 217 91% 60%;
+    --status-need-start-bg: 217 91% 95%;
+    --status-blocked: 0 84% 60%;
+    --status-blocked-bg: 0 84% 95%;
+    
+    /* Priority colors */
+    --priority-high: 0 84% 60%;
+    --priority-medium: 45 93% 47%;
+    --priority-low: 217 91% 60%;
+    
+    /* Toolbar colors */
+    --toolbar-bg: 0 0% 100%;
+    --toolbar-border: 220 13% 91%;
+    --toolbar-hover: 220 13% 95%;
 
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;

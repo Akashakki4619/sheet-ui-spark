@@ -24,6 +24,32 @@ export default {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				
+				// Spreadsheet colors
+				'sheet-header': 'hsl(var(--sheet-header))',
+				'sheet-border': 'hsl(var(--sheet-border))',
+				'sheet-hover': 'hsl(var(--sheet-hover))',
+				'sheet-selected': 'hsl(var(--sheet-selected))',
+				
+				// Status colors
+				'status-complete': 'hsl(var(--status-complete))',
+				'status-complete-bg': 'hsl(var(--status-complete-bg))',
+				'status-in-process': 'hsl(var(--status-in-process))',
+				'status-in-process-bg': 'hsl(var(--status-in-process-bg))',
+				'status-need-start': 'hsl(var(--status-need-start))',
+				'status-need-start-bg': 'hsl(var(--status-need-start-bg))',
+				'status-blocked': 'hsl(var(--status-blocked))',
+				'status-blocked-bg': 'hsl(var(--status-blocked-bg))',
+				
+				// Priority colors
+				'priority-high': 'hsl(var(--priority-high))',
+				'priority-medium': 'hsl(var(--priority-medium))',
+				'priority-low': 'hsl(var(--priority-low))',
+				
+				// Toolbar colors
+				'toolbar-bg': 'hsl(var(--toolbar-bg))',
+				'toolbar-border': 'hsl(var(--toolbar-border))',
+				'toolbar-hover': 'hsl(var(--toolbar-hover))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'

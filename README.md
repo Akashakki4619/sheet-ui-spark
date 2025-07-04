@@ -184,7 +184,6 @@ This is a prototype project, but suggestions and improvements are welcome throug
 
 ---
 
-**Live Demo**: [Deployed Application URL]  
-**Repository**: [GitHub Repository URL]
+**Live Demo**: [\[Deployed Application URL\] ](https://sheet-ui-spark.vercel.app/) 
+**Repository**: [\[GitHub Repository URL\]](https://github.com/Akashakki4619/sheet-ui-spark.git)
 
-Built with ❤️ using React, TypeScript, and Tailwind CSS
